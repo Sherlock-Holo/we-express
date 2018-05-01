@@ -4,6 +4,9 @@ import (
     "github.com/BurntSushi/toml"
     "os"
     "bytes"
+    "mime"
+    "path"
+    "encoding/json"
 )
 
 const QueryUrl = "http://api.kdniao.cc/Ebusiness/EbusinessOrderHandle.aspx"
@@ -44,6 +47,28 @@ func Parse(f string) (Config, error) {
         return Config{}, err
     }
 
+    info, err := file.Stat()
+
+    if err != nil {
+        return Config{}, err
+    }
+
+    extension := mime.TypeByExtension(path.Ext(info.Name()))
+
+    conf := Config{}
+
+    if extension == "application/json" {
+        decoder := json.NewDecoder(file)
+
+        err = decoder.Decode(&conf)
+
+        if err != nil {
+            return Config{}, err
+        }
+
+        return conf, nil
+    }
+
     buf := bytes.NewBufferString("")
 
     _, err = buf.ReadFrom(file)
@@ -51,8 +76,6 @@ func Parse(f string) (Config, error) {
     if err != nil {
         return Config{}, err
     }
-
-    conf := Config{}
 
     _, err = toml.Decode(buf.String(), &conf)
 
