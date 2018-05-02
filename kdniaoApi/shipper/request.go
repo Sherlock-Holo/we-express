@@ -1,6 +1,9 @@
 package shipper
 
-import "encoding/json"
+import (
+    "encoding/json"
+    "fmt"
+)
 
 type Request struct {
     LogisticCode string
@@ -20,10 +23,10 @@ func NewRequest(order string) Request {
 }
 
 func (r *Request) RequestData() (string, error) {
-    bytes, err := json.Marshal(*r)
+    bytes, err := json.Marshal(r)
 
     if err != nil {
-        return "", err
+        return "", fmt.Errorf("encode query failed")
     }
 
     r.jsonString = string(bytes)

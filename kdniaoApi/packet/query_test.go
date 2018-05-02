@@ -3,10 +3,12 @@ package packet
 import (
     "testing"
     "fmt"
+    "github.com/we-express/config"
 )
 
 func TestDoQuery(t *testing.T) {
-    query, err := NewQuery("1338036", "d113aa98-addf-4188-91e7-d3deb5dc64dd", "540302693641", "ZTO")
+    conf, _ := config.Parse("/home/sherlock/go/src/github.com/we-express/config/config.toml")
+    query, err := NewQuery(conf.EBusinessID, conf.AppKey, "540302693641", "ZTO")
 
     if err != nil {
         t.Error(err)

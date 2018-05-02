@@ -4,10 +4,18 @@ import (
 	"testing"
 
     "fmt"
+    "github.com/we-express/config"
+    "log"
 )
 
 func TestDoQuery(t *testing.T) {
-	query, err := NewQuery("1338036", "d113aa98-addf-4188-91e7-d3deb5dc64dd", "540302693641")
+    conf, err := config.Parse("/home/sherlock/go/src/github.com/we-express/config/config.toml")
+
+    if err != nil {
+        log.Fatal(err)
+    }
+
+	query, err := NewQuery(conf.EBusinessID, conf.AppKey, "540302693641")
 
     if err != nil {
         t.Error(err)

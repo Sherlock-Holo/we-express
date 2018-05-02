@@ -8,6 +8,7 @@ import (
     "encoding/hex"
     "encoding/base64"
     "github.com/we-express/config"
+    "fmt"
 )
 
 func NewQuery(id, appKey, order, shipper string) (kdniaoApi.Query, error) {
@@ -18,7 +19,7 @@ func NewQuery(id, appKey, order, shipper string) (kdniaoApi.Query, error) {
     query := kdniaoApi.Query{}
 
     if err != nil {
-        return query, err
+        return query, fmt.Errorf("encode query failed")
     }
 
     query.RequestData = requestData
@@ -36,7 +37,7 @@ func DoQuery(query kdniaoApi.Query) (Status, error) {
     status := Status{}
 
     if err != nil {
-        return status, err
+        return status, fmt.Errorf("query packet failed")
     }
 
     decoder := json.NewDecoder(resp.Body)
