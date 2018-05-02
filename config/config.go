@@ -4,35 +4,32 @@ import (
     "github.com/BurntSushi/toml"
     "os"
     "bytes"
-    "mime"
-    "path"
-    "encoding/json"
 )
 
 const QueryUrl = "http://api.kdniao.cc/Ebusiness/EbusinessOrderHandle.aspx"
 
 var ShipperCode = map[string]string{
-    "顺丰速运":         "SF",
-    "百世快递":         "HTKY",
-    "中通快递":         "ZTO",
-    "申通快递":         "STO",
-    "圆通速递":         "YTO",
-    "韵达速递":         "YD",
-    "邮政快递":         "YZPY",
-    "EMS":          "EMS",
-    "天天快递":         "HHTT",
-    "京东物流":         "JD",
-    "优速快递":         "UC",
-    "德邦":           "DBL",
-    "快捷快递":         "FAST",
-    "宅急送":          "ZJS",
-    "TNT快递":        "TNT",
-    "UPS":          "UPS",
-    "DHL":          "DHL",
-    "FEDEX联邦(国内件)": "FEDEX",
-    "FEDEX联邦(国际件)": "FEDEX_GJ",
-    "八达通":          "BDT",
-    "百世快运":         "BTWL",
+    "SF":       "顺丰速运",
+    "HTKY":     "百世快递",
+    "ZTO":      "中通快递",
+    "STO":      "申通快递",
+    "YTO":      "圆通速递",
+    "YD":       "韵达速递",
+    "YZPY":     "邮政快递",
+    "EMS":      "EMS",
+    "HHTT":     "天天快递",
+    "JD":       "京东物流",
+    "UC":       "优速快递",
+    "DBL":      "德邦",
+    "FAST":     "快捷快递",
+    "ZJS":      "宅急送",
+    "TNT":      "TNT快递",
+    "UPS":      "UPS",
+    "DHL":      "DHL",
+    "FEDEX":    "FEDEX联邦(国内件)",
+    "FEDEX_GJ": "FEDEX联邦(国际件)",
+    "BDT":      "八达通",
+    "BTWL":     "百世快运",
 }
 
 type Config struct {
@@ -47,27 +44,11 @@ func Parse(f string) (Config, error) {
         return Config{}, err
     }
 
-    info, err := file.Stat()
-
     if err != nil {
         return Config{}, err
     }
 
-    extension := mime.TypeByExtension(path.Ext(info.Name()))
-
     conf := Config{}
-
-    if extension == "application/json" {
-        decoder := json.NewDecoder(file)
-
-        err = decoder.Decode(&conf)
-
-        if err != nil {
-            return Config{}, err
-        }
-
-        return conf, nil
-    }
 
     buf := bytes.NewBufferString("")
 
