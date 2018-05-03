@@ -21,6 +21,7 @@ func query(w http.ResponseWriter, r *http.Request) {
     if order == "" {
         w.WriteHeader(http.StatusBadRequest)
         io.WriteString(w, "error order")
+        log.Println("error order")
         return
     }
 
@@ -28,6 +29,7 @@ func query(w http.ResponseWriter, r *http.Request) {
 
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
+        log.Println(err)
         return
     }
 
@@ -43,6 +45,7 @@ func query(w http.ResponseWriter, r *http.Request) {
 
         if err != nil {
             w.WriteHeader(http.StatusInternalServerError)
+            log.Println(err)
             return
         }
 
@@ -54,8 +57,11 @@ func query(w http.ResponseWriter, r *http.Request) {
 
         if err != nil {
             w.WriteHeader(http.StatusInternalServerError)
+            log.Println(err)
             return
         }
+
+        resp.Order = order
 
         resp.StateInfo = api.Statuses[response.Status]
         resp.State = i
@@ -74,13 +80,16 @@ func query(w http.ResponseWriter, r *http.Request) {
 
         if err != nil {
             w.WriteHeader(http.StatusInternalServerError)
+            log.Println(err)
             return
         }
 
+        w.Header().Set("Content-type", "application/json")
         w.Write(bytes)
 
     default:
         w.WriteHeader(http.StatusInternalServerError)
+        log.Println(err)
         return
     }
 }
@@ -96,6 +105,8 @@ func Start(configFile, addr string, port uint) {
     http.HandleFunc("/express", query)
 
     address := fmt.Sprintf("%s:%d", addr, port)
+
+    log.Printf("listen on %s:%d\n", addr, port)
 
     log.Fatal(http.ListenAndServe(address, nil))
 }
