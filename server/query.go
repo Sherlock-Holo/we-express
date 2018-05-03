@@ -76,6 +76,14 @@ func query(w http.ResponseWriter, r *http.Request) {
             resp.Records = append(resp.Records, record)
         }
 
+        com, ok := api.ComCode[response.Com]
+
+        if !ok {
+            resp.Com = response.Com
+        } else {
+            resp.Com = com
+        }
+
         bytes, err := json.Marshal(resp)
 
         if err != nil {

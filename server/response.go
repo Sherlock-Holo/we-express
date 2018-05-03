@@ -4,6 +4,7 @@ import "time"
 
 type Response struct {
     Order     string
+    Com       string
     Status    bool
     State     int
     StateInfo string

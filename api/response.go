@@ -6,10 +6,10 @@ type State struct {
 }
 
 type Response struct {
-    //Message string  `json:"message"`
-    Status  string  `json:"status"`
-    State   string  `json:"state"`
-    Data    []State `json:"data"`
+    Com    string  `json:"com"`
+    Status string  `json:"status"`
+    State  string  `json:"state"`
+    Data   []State `json:"data"`
 }
 
 var States = map[string]string{
