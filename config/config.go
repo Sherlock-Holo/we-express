@@ -6,8 +6,6 @@ import (
     "bytes"
 )
 
-const QueryUrl = "http://api.kdniao.cc/Ebusiness/EbusinessOrderHandle.aspx"
-
 var ShipperCode = map[string]string{
     "SF":       "顺丰速运",
     "HTKY":     "百世快递",
@@ -33,8 +31,7 @@ var ShipperCode = map[string]string{
 }
 
 type Config struct {
-    EBusinessID string
-    AppKey      string
+    ID string `toml:"id"`
 }
 
 func Parse(f string) (Config, error) {
