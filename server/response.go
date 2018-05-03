@@ -3,20 +3,25 @@ package server
 import "time"
 
 type Response struct {
-    Order   string
-    Shipper string
-    States  []State
+    Status    bool
+    State     int
+    StateInfo string
+    Records   []Record
 }
 
-type State struct {
-    Date jTime
+type Record struct {
+    Time JTime
     Info string
 }
 
-type jTime time.Time
+type JTime time.Time
 
-func (jt jTime) MarshalJSON() ([]byte, error) {
-    t := time.Time(jt)
+func (jt *JTime) MarshalJSON() ([]byte, error) {
+    t := time.Time(*jt)
+    return []byte(t.Format("2006-01-02 15:04:05")), nil
+}
 
-    return []byte(t.Format(`"2006-01-02 15:04:05"`)), nil
+func newJTime(t string) JTime {
+    jTime, _ := time.Parse("2006-01-02 15:04:05", t)
+    return JTime(jTime)
 }

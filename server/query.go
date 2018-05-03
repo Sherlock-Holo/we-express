@@ -1,80 +1,101 @@
 package server
 
 import (
-    "github.com/we-express/kdniaoApi/packet"
-    "github.com/we-express/kdniaoApi/shipper"
+    "net/http"
+    "io"
     "github.com/we-express/config"
-    "time"
+    "github.com/we-express/api"
+    "encoding/json"
+    "strconv"
+    "log"
     "fmt"
 )
 
-func QueryExpress(id, appKey, order string) (Response, error) {
-    shipperQuery, err := shipper.NewQuery(id, appKey, order)
+var conf config.Config
+
+func query(w http.ResponseWriter, r *http.Request) {
+    query := r.URL.Query()
+
+    order := query.Get("order")
+
+    if order == "" {
+        w.WriteHeader(http.StatusBadRequest)
+        io.WriteString(w, "error order")
+        return
+    }
+
+    response, err := api.Query(order, conf.ID)
 
     if err != nil {
-        return Response{}, err
+        w.WriteHeader(http.StatusInternalServerError)
+        return
     }
 
-    shipperResult, err := shipper.DoQuery(shipperQuery)
+    resp := Response{}
 
-    if err != nil {
-        return Response{}, fmt.Errorf("query shipper code failed")
-    }
+    resp.Records = make([]Record, 0)
 
-    shipperCode, err := shipperResult.ShipperCode()
+    switch response.Status {
+    case "0", "2":
+        resp.Status = false
 
-    if err != nil {
-        return Response{}, err
-    }
-
-    packetQuery, err := packet.NewQuery(id, appKey, order, shipperCode)
-
-    if err != nil {
-        return Response{}, err
-    }
-
-    status, err := packet.DoQuery(packetQuery)
-
-    if err != nil {
-        return Response{}, err
-    }
-
-    response := Response{}
-
-    response.Order = status.LogisticCode
-
-    shipperName, ok := config.ShipperCode[status.ShipperCode]
-
-    if !ok {
-        response.Shipper = "unknown"
-    } else {
-        response.Shipper = shipperName
-    }
-
-    for _, trace := range status.Traces {
-        t, err := parseTime(trace.AcceptTime)
+        bytes, err := json.Marshal(resp)
 
         if err != nil {
-            return Response{}, err
+            w.WriteHeader(http.StatusInternalServerError)
+            return
         }
 
-        state := State{
-            Info: trace.AcceptStation,
-            Date: t,
+        w.Write(bytes)
+
+    case "1":
+        resp.Status = true
+        i, err := strconv.Atoi(response.State)
+
+        if err != nil {
+            w.WriteHeader(http.StatusInternalServerError)
+            return
         }
 
-        response.States = append(response.States, state)
+        resp.StateInfo = api.Statuses[response.Status]
+        resp.State = i
+
+        for _, data := range response.Data {
+            record := Record{}
+
+            jTime := newJTime(data.Time)
+            record.Time = jTime
+            record.Info = data.Context
+
+            resp.Records = append(resp.Records, record)
+        }
+
+        bytes, err := json.Marshal(resp)
+
+        if err != nil {
+            w.WriteHeader(http.StatusInternalServerError)
+            return
+        }
+
+        w.Write(bytes)
+
+    default:
+        w.WriteHeader(http.StatusInternalServerError)
+        return
     }
-
-    return response, nil
 }
 
-func parseTime(t string) (jTime, error) {
-    parsed, err := time.Parse("2006-01-02 15:04:05", t)
+func Start(configFile, addr string, port uint) {
+    var err error
+    conf, err = config.Parse(configFile)
 
     if err != nil {
-        return jTime{}, err
+        log.Fatal(err)
     }
 
-    return jTime(parsed), nil
+    http.HandleFunc("/express", query)
+
+    address := fmt.Sprintf("%s:%d", addr, port)
+
+    log.Fatal(http.ListenAndServe(address, nil))
 }

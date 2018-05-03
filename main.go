@@ -2,13 +2,13 @@ package main
 
 import (
     "flag"
-    "github.com/we-express/server"
     "os"
+    "github.com/we-express/server"
 )
 
 var (
-    addr = flag.String("addr", "", "listen addr")
-    port = flag.Int("port", 80, "listen port")
+    addr = flag.String("addr", "::", "listen addr")
+    port = flag.Uint("port", 80, "listen port")
     conf = flag.String("conf", "", "config file")
 )
 
@@ -20,5 +20,5 @@ func main() {
         os.Exit(2)
     }
 
-    server.Start(*addr, *port, *conf)
+    server.Start(*conf, *addr, *port)
 }
