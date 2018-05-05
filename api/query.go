@@ -6,7 +6,7 @@ import (
     "encoding/json"
 )
 
-const queryUrl = "http://q.kdpt.net/api?id=%s&nu=%s&com=auto&show=json"
+const queryUrl = "http://q.kdpt.net/api"
 
 var ComCode = map[string]string{
     "shunfeng":  "顺丰",
@@ -29,8 +29,28 @@ var ComCode = map[string]string{
     "fedex":     "FEDEX联邦",
 }
 
-func Query(order, id string) (Response, error) {
-    resp, err := http.Get(fmt.Sprintf(queryUrl, id, order))
+func Query(order, id, com string) (Response, error) {
+    request, err := http.NewRequest(http.MethodGet, queryUrl, nil)
+
+    if err != nil {
+        return Response{}, fmt.Errorf("query failed")
+    }
+
+    query := request.URL.Query()
+
+    query.Add("show", "json")
+    query.Add("id", id)
+    query.Add("nu", order)
+
+    if com == "" {
+        query.Add("com", "auto")
+    } else {
+        query.Add("com", com)
+    }
+
+    request.URL.RawQuery = query.Encode()
+
+    resp, err := http.DefaultClient.Do(request)
 
     if err != nil {
         return Response{}, fmt.Errorf("query failed")

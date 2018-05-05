@@ -17,15 +17,16 @@ func query(w http.ResponseWriter, r *http.Request) {
     query := r.URL.Query()
 
     order := query.Get("order")
+    com := query.Get("com")
 
     if order == "" {
         w.WriteHeader(http.StatusBadRequest)
-        io.WriteString(w, "error order")
+        io.WriteString(w, "order error")
         log.Println("error order")
         return
     }
 
-    response, err := api.Query(order, conf.ID)
+    response, err := api.Query(order, conf.ID, com)
 
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
@@ -38,6 +39,9 @@ func query(w http.ResponseWriter, r *http.Request) {
     resp.Records = make([]Record, 0)
 
     switch response.Status {
+
+    // 0: 暂无结果
+    // 2: 接口出现异常
     case "0", "2":
         resp.Status = false
 
