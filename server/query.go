@@ -114,7 +114,7 @@ func Start(configFile, addr string, port uint) {
 
     address := fmt.Sprintf("%s:%d", addr, port)
 
-    log.Printf("listen on %s:%d\n", addr, port)
+    log.Printf("listen on %s\n", address)
 
     log.Fatal(http.ListenAndServe(address, nil))
 }
