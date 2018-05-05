@@ -3,7 +3,7 @@ package main
 import (
     "flag"
     "os"
-    "github.com/we-express/server"
+    "github.com/Sherlock-Holo/we-express/server"
 )
 
 var (
