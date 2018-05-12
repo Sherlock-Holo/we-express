@@ -6,7 +6,7 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	conf, err := Parse("/home/sherlock/go/src/github.com/we-express/.idea/config.toml")
+	conf, err := Parse("/home/sherlock/go/src/github.com/Sherlock-Holo/we-express/.idea/config.toml")
 
     if err != nil {
         t.Error(err)

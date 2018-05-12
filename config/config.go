@@ -7,7 +7,9 @@ import (
 )
 
 type Config struct {
-    ID string `toml:"id"`
+    ID         string `toml:"id"`
+    DbUser     string `toml:"dbuser"`
+    DbPassword string `toml:"dbpassword"`
 }
 
 func Parse(f string) (Config, error) {
