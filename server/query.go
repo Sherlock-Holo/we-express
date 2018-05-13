@@ -38,12 +38,16 @@ func query(w http.ResponseWriter, r *http.Request) {
 
     resp.Records = make([]Record, 0)
 
+    i, err := strconv.Atoi(response.State)
+
     switch response.Status {
 
     // 0: 暂无结果
     // 2: 接口出现异常
     case "0", "2":
         resp.Status = false
+        resp.State = i
+        resp.StateInfo = api.States[response.State]
 
         bytes, err := json.Marshal(resp)
 
@@ -58,7 +62,6 @@ func query(w http.ResponseWriter, r *http.Request) {
 
     case "1":
         resp.Status = true
-        i, err := strconv.Atoi(response.State)
 
         if err != nil {
             w.WriteHeader(http.StatusInternalServerError)
@@ -68,7 +71,7 @@ func query(w http.ResponseWriter, r *http.Request) {
 
         resp.Order = order
 
-        resp.StateInfo = api.Statuses[response.Status]
+        resp.StateInfo = api.States[response.State]
         resp.State = i
 
         for _, data := range response.Data {

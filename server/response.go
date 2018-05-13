@@ -2,6 +2,10 @@ package server
 
 import "time"
 
+// State and StateInfo:
+// "0": "物流单暂无结果",
+// "1": "查询成功",
+// "2": "接口出现异常",
 type Response struct {
     Order     string
     Com       string
