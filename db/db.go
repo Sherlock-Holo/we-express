@@ -10,9 +10,10 @@ import (
     "time"
     "fmt"
     "github.com/Sherlock-Holo/we-express/api"
-    "github.com/Sherlock-Holo/we-express/server"
     "strconv"
     "encoding/json"
+
+    _ "github.com/Go-SQL-Driver/MySQL"
 )
 
 var (
@@ -35,7 +36,7 @@ func (db *ExpressDB) Update(order, com, apiID string, exist bool) (string, error
         return "", err
     }
 
-    serverResp := server.Response{}
+    serverResp := Response{}
 
     i, err := strconv.Atoi(apiResp.State)
 
@@ -58,9 +59,9 @@ func (db *ExpressDB) Update(order, com, apiID string, exist bool) (string, error
         serverResp.Order = order
 
         for _, data := range apiResp.Data {
-            record := server.Record{}
+            record := Record{}
 
-            jTime := server.NewJTime(data.Time)
+            jTime := NewJTime(data.Time)
             record.Time = jTime
             record.Info = data.Context
 
@@ -88,16 +89,16 @@ func (db *ExpressDB) Update(order, com, apiID string, exist bool) (string, error
     var stmt *sql.Stmt
 
     if exist {
-        stmt, err = db.db.Prepare("update express set update_time=? express_state=? express_record=?")
+        stmt, err = db.db.Prepare("update express set express_id=? update_time=? express_record=? express_com=?")
     } else {
-        stmt, err = db.db.Prepare("insert into express (update_time, express_state, express_record), values (?, ?, ?)")
+        stmt, err = db.db.Prepare("insert into express (express_id, update_time, express_record, express_com) values (?, ?, ?, ?)")
     }
 
     if err != nil {
         return "", err
     }
 
-    _, err = stmt.Exec(unixTime, serverResp.State, jsonString)
+    _, err = stmt.Exec(order, unixTime, jsonString, apiResp.Com)
 
     if err != nil {
         return "", err
@@ -117,10 +118,10 @@ func (db *ExpressDB) Query(order, com string) (string, error) {
     db.rwlock.RLock()
 
     if com == "" || com == "auto" {
-        row = db.db.QueryRow("SELECT express_record, update_time FROM express WHERE express_code=?", order)
+        row = db.db.QueryRow("SELECT express_record, update_time FROM express WHERE express_id=?", order)
 
     } else {
-        row = db.db.QueryRow("SELECT express_record, update_time FROM express WHERE express_code=? AND express_com=?", order, com)
+        row = db.db.QueryRow("SELECT express_record, update_time FROM express WHERE express_id=? AND express_com=?", order, com)
     }
 
     if err != nil {
@@ -154,7 +155,7 @@ func (db *ExpressDB) Query(order, com string) (string, error) {
 }
 
 func Connect(user, password string) (*ExpressDB, error) {
-    db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@/expresss", user, password))
+    db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@/express", user, password))
 
     if err != nil {
         return nil, err
