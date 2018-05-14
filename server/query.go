@@ -4,14 +4,16 @@ import (
     "net/http"
     "io"
     "github.com/Sherlock-Holo/we-express/config"
-    "github.com/Sherlock-Holo/we-express/api"
-    "encoding/json"
-    "strconv"
     "log"
     "fmt"
+    "github.com/Sherlock-Holo/we-express/db"
+    "database/sql"
 )
 
-var conf config.Config
+var (
+    conf      config.Config
+    expressDB *db.ExpressDB
+)
 
 func query(w http.ResponseWriter, r *http.Request) {
     query := r.URL.Query()
@@ -26,93 +28,47 @@ func query(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    response, err := api.Query(order, conf.ID, com)
+    jsonString, err := expressDB.Query(order, com)
 
-    if err != nil {
-        w.WriteHeader(http.StatusInternalServerError)
+    switch {
+    case err == db.Timeout:
+        jsonString, err = expressDB.Update(order, com, conf.ID, true)
+
+        if err != nil {
+            log.Println(err)
+            w.WriteHeader(http.StatusInternalServerError)
+            return
+        }
+
+    case err == sql.ErrNoRows:
+        jsonString, err = expressDB.Update(order, com, conf.ID, false)
+
+        if err != nil {
+            log.Println(err)
+            w.WriteHeader(http.StatusInternalServerError)
+            return
+        }
+
+    case err != nil:
         log.Println(err)
+        w.WriteHeader(http.StatusInternalServerError)
         return
     }
 
-    resp := Response{}
+    w.Header().Set("Content-type", "application/json")
+    io.WriteString(w, jsonString)
 
-    resp.Records = make([]Record, 0)
-
-    i, err := strconv.Atoi(response.State)
-
-    switch response.Status {
-
-    // 0: 暂无结果
-    // 2: 接口出现异常
-    case "0", "2":
-        resp.Status = false
-        resp.State = i
-        resp.StateInfo = api.States[response.State]
-
-        bytes, err := json.Marshal(resp)
-
-        if err != nil {
-            w.WriteHeader(http.StatusInternalServerError)
-            log.Println(err)
-            return
-        }
-
-        w.Header().Set("Content-type", "application/json")
-        w.Write(bytes)
-
-    case "1":
-        resp.Status = true
-
-        if err != nil {
-            w.WriteHeader(http.StatusInternalServerError)
-            log.Println(err)
-            return
-        }
-
-        resp.Order = order
-
-        resp.StateInfo = api.States[response.State]
-        resp.State = i
-
-        for _, data := range response.Data {
-            record := Record{}
-
-            jTime := newJTime(data.Time)
-            record.Time = jTime
-            record.Info = data.Context
-
-            resp.Records = append(resp.Records, record)
-        }
-
-        com, ok := api.ComCode[response.Com]
-
-        if !ok {
-            resp.Com = response.Com
-        } else {
-            resp.Com = com
-        }
-
-        bytes, err := json.Marshal(resp)
-
-        if err != nil {
-            w.WriteHeader(http.StatusInternalServerError)
-            log.Println(err)
-            return
-        }
-
-        w.Header().Set("Content-type", "application/json")
-        w.Write(bytes)
-
-    default:
-        w.WriteHeader(http.StatusInternalServerError)
-        log.Println(err)
-        return
-    }
 }
 
 func Start(configFile, addr string, port uint) {
     var err error
     conf, err = config.Parse(configFile)
+
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    expressDB, err = db.Connect(conf.DbUser, conf.DbPassword)
 
     if err != nil {
         log.Fatal(err)

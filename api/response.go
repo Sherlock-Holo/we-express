@@ -22,8 +22,8 @@ var States = map[string]string{
     "6": "退回，货物正处于退回发件人的途中",
 }
 
-var Statuses = map[string]string{
+/*var Statuses = map[string]string{
     "0": "物流单暂无结果",
     "1": "查询成功",
     "2": "接口出现异常",
-}
+}*/
