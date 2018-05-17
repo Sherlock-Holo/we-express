@@ -36,6 +36,7 @@ func query(w http.ResponseWriter, r *http.Request) {
     )
 
     if force != "" {
+        log.Printf("force refresh, order %s, com %s", order, com)
         jsonString, err = expressDB.Update(order, com, conf.ID)
     } else {
         jsonString, err = expressDB.Query(order, com)
@@ -43,6 +44,8 @@ func query(w http.ResponseWriter, r *http.Request) {
 
     switch err {
     case db.Timeout, sql.ErrNoRows:
+        log.Println(err, "refresh from api")
+
         jsonString, err = expressDB.Update(order, com, conf.ID)
 
         if err != nil {

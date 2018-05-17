@@ -1,9 +1,8 @@
 package server
 
 import (
-    "errors"
-
     "github.com/Sherlock-Holo/we-express/db"
+    "errors"
 )
 
 func autoUpdate(db *db.ExpressDB, apiID string) error {
@@ -54,3 +53,31 @@ func autoUpdate(db *db.ExpressDB, apiID string) error {
         return nil
     }
 }
+
+/*func autoUpdate(db *db.ExpressDB, apiID string) error {
+    rows, err := db.ListExpress()
+
+    if err != nil {
+        return err
+    }
+
+    for rows.Next() {
+        var (
+            order string
+            com   string
+        )
+
+        err = rows.Scan(&order, &com)
+        if err != nil {
+            break
+        }
+
+        // count++
+        _, err = db.Update(order, com, apiID)
+        if err != nil {
+            return err
+        }
+    }
+
+    return nil
+}*/
