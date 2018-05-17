@@ -1,12 +1,13 @@
 package server
 
 import (
-    "net/http"
-    "io"
-    "github.com/Sherlock-Holo/we-express/config"
-    "log"
-    "github.com/Sherlock-Holo/we-express/db"
+    "compress/gzip"
     "database/sql"
+    "github.com/Sherlock-Holo/we-express/config"
+    "github.com/Sherlock-Holo/we-express/db"
+    "io"
+    "log"
+    "net/http"
 )
 
 var (
@@ -34,14 +35,14 @@ func query(w http.ResponseWriter, r *http.Request) {
     )
 
     if force != "" {
-        jsonString, err = expressDB.Update(order, com, conf.ID, expressDB.Check(order))
+        jsonString, err = expressDB.Update(order, com, conf.ID)
     } else {
         jsonString, err = expressDB.Query(order, com)
     }
 
-    switch {
-    case err == db.Timeout:
-        jsonString, err = expressDB.Update(order, com, conf.ID, true)
+    switch err {
+    case db.Timeout, sql.ErrNoRows:
+        jsonString, err = expressDB.Update(order, com, conf.ID)
 
         if err != nil {
             log.Println(err)
@@ -49,22 +50,19 @@ func query(w http.ResponseWriter, r *http.Request) {
             return
         }
 
-    case err == sql.ErrNoRows:
-        jsonString, err = expressDB.Update(order, com, conf.ID, false)
+    case nil:
 
-        if err != nil {
-            log.Println(err)
-            w.WriteHeader(http.StatusInternalServerError)
-            return
-        }
-
-    case err != nil:
+    default:
         log.Println(err)
         w.WriteHeader(http.StatusInternalServerError)
         return
     }
 
+    w.Header().Add("Content-Encoding", "gzip")
     w.Header().Set("Content-type", "application/json")
-    io.WriteString(w, jsonString)
 
+    gzw := gzip.NewWriter(w)
+
+    gzw.Write([]byte(jsonString))
+    gzw.Close()
 }

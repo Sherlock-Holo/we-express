@@ -4,36 +4,31 @@ package db
 // express_id(varchar 20), express_com(10), express_record(text), update_time(int)
 
 import (
-    "errors"
     "database/sql"
-    "sync"
-    "time"
-    "fmt"
-    "log"
-    "github.com/Sherlock-Holo/we-express/api"
-    "strconv"
     "encoding/json"
-
+    "errors"
+    "fmt"
     _ "github.com/Go-SQL-Driver/MySQL"
+    "github.com/Sherlock-Holo/we-express/api"
+    "log"
+    "strconv"
+    "time"
 )
 
 var (
     Timeout = errors.New("database data timeout")
 
-    updatePrepared *sql.Stmt
-    insertPrepared *sql.Stmt
+    quickQueryPrepared     *sql.Stmt
+    queryPrepared          *sql.Stmt
+    insertOrUpdatePrepared *sql.Stmt
 )
 
 type ExpressDB struct {
-    db     *sql.DB
-    rwlock sync.RWMutex
+    db *sql.DB
 }
 
-func (db *ExpressDB) Update(order, com, apiID string, exist bool) (string, error) {
+func (db *ExpressDB) Update(order, com, apiID string) (string, error) {
     apiResp, err := api.Query(order, apiID, com)
-
-    db.rwlock.Lock()
-    defer db.rwlock.Unlock()
 
     if err != nil {
         return "", err
@@ -89,12 +84,7 @@ func (db *ExpressDB) Update(order, com, apiID string, exist bool) (string, error
 
     unixTime := time.Now().UTC().Unix()
 
-    if exist {
-        _, err = updatePrepared.Exec(unixTime, jsonString, apiResp.Com, order)
-    } else {
-        _, err = insertPrepared.Exec(unixTime, jsonString, apiResp.Com, order)
-    }
-
+    _, err = insertOrUpdatePrepared.Exec(order, unixTime, jsonString, apiResp.Com)
     if err != nil {
         return "", err
     }
@@ -106,35 +96,19 @@ func (db *ExpressDB) Query(order, com string) (string, error) {
     now := time.Now()
 
     var (
-        row *sql.Row
-        err error
-    )
-
-    db.rwlock.RLock()
-
-    if com == "" || com == "auto" {
-        row = db.db.QueryRow("SELECT express_record, update_time FROM express WHERE express_id=?", order)
-
-    } else {
-        row = db.db.QueryRow("SELECT express_record, update_time FROM express WHERE express_id=?", order)
-    }
-
-    if err != nil {
-        db.rwlock.RUnlock()
-        return "", err
-    }
-
-    var (
+        row           *sql.Row
+        err           error
         expressRecord string
         updateTime    int64
     )
 
-    err = row.Scan(&expressRecord, &updateTime)
-    db.rwlock.RUnlock()
-
-    if err == sql.ErrNoRows {
-        return "", sql.ErrNoRows
+    if com == "" || com == "auto" {
+        row = quickQueryPrepared.QueryRow(order)
+    } else {
+        row = queryPrepared.QueryRow(order, com)
     }
+
+    err = row.Scan(&expressRecord, &updateTime)
 
     if err != nil {
         return "", err
@@ -150,22 +124,7 @@ func (db *ExpressDB) Query(order, com string) (string, error) {
 }
 
 func (db *ExpressDB) ListExpress() (*sql.Rows, error) {
-    return db.db.Query("select * from express")
-}
-
-func (db *ExpressDB) Check(order string) bool {
-    db.rwlock.RLock()
-    defer db.rwlock.RUnlock()
-
-    row := db.db.QueryRow("SELECT express_id FROM express WHERE express_id=?", order)
-
-    err := row.Scan(new(string))
-
-    if err == sql.ErrNoRows {
-        return false
-    } else {
-        return true
-    }
+    return db.db.Query("select express_id, express_com from express")
 }
 
 func Connect(user, password string) (*ExpressDB, error) {
@@ -179,12 +138,19 @@ func Connect(user, password string) (*ExpressDB, error) {
         log.Fatal(err)
     }
 
-    updatePrepared, err = db.Prepare("update express set update_time=?, express_record=?, express_com=? where express_id=?")
+    quickQueryPrepared, err = db.Prepare("SELECT express_record, update_time FROM express WHERE express_id=?")
     if err != nil {
         return nil, err
     }
 
-    insertPrepared, err = db.Prepare("insert into express (update_time, express_record, express_com, express_id) values (?, ?, ?, ?)")
+    queryPrepared, err = db.Prepare("SELECT express_record, update_time FROM express WHERE express_id=? AND express_com=?")
+    if err != nil {
+        return nil, err
+    }
+
+    insertOrUpdatePrepared, err = db.Prepare("INSERT INTO express (express_id, update_time, express_record, express_com) values (?, ?, ?, ?) " +
+        "on DUPLICATE KEY UPDATE update_time=VALUES(update_time), express_record=VALUES(express_record), express_com=VALUES(express_com)")
+
     if err != nil {
         return nil, err
     }

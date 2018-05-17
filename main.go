@@ -2,8 +2,8 @@ package main
 
 import (
     "flag"
-    "os"
     "github.com/Sherlock-Holo/we-express/server"
+    "os"
 )
 
 var (
