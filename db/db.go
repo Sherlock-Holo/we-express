@@ -8,11 +8,12 @@ import (
     "encoding/json"
     "errors"
     "fmt"
-    _ "github.com/Go-SQL-Driver/MySQL"
-    "github.com/Sherlock-Holo/we-express/api"
     "log"
     "strconv"
     "time"
+
+    _ "github.com/Go-SQL-Driver/MySQL"
+    "github.com/Sherlock-Holo/we-express/api"
 )
 
 var (

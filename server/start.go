@@ -2,10 +2,11 @@ package server
 
 import (
     "fmt"
-    "github.com/Sherlock-Holo/we-express/config"
-    "github.com/Sherlock-Holo/we-express/db"
     "log"
     "net/http"
+
+    "github.com/Sherlock-Holo/we-express/config"
+    "github.com/Sherlock-Holo/we-express/db"
 )
 
 func Start(configFile, addr string, port uint) {

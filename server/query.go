@@ -3,11 +3,12 @@ package server
 import (
     "compress/gzip"
     "database/sql"
-    "github.com/Sherlock-Holo/we-express/config"
-    "github.com/Sherlock-Holo/we-express/db"
     "io"
     "log"
     "net/http"
+
+    "github.com/Sherlock-Holo/we-express/config"
+    "github.com/Sherlock-Holo/we-express/db"
 )
 
 var (
