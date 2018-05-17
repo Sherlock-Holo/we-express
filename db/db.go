@@ -9,6 +9,7 @@ import (
     "sync"
     "time"
     "fmt"
+    "log"
     "github.com/Sherlock-Holo/we-express/api"
     "strconv"
     "encoding/json"
@@ -18,7 +19,9 @@ import (
 
 var (
     Timeout = errors.New("database data timeout")
-    //NotInDB = errors.New("express not in database")
+
+    updatePrepared *sql.Stmt
+    insertPrepared *sql.Stmt
 )
 
 type ExpressDB struct {
@@ -86,19 +89,11 @@ func (db *ExpressDB) Update(order, com, apiID string, exist bool) (string, error
 
     unixTime := time.Now().UTC().Unix()
 
-    var stmt *sql.Stmt
-
     if exist {
-        stmt, err = db.db.Prepare("update express set express_id=? update_time=? express_record=? express_com=?")
+        _, err = updatePrepared.Exec(unixTime, jsonString, apiResp.Com, order)
     } else {
-        stmt, err = db.db.Prepare("insert into express (express_id, update_time, express_record, express_com) values (?, ?, ?, ?)")
+        _, err = insertPrepared.Exec(unixTime, jsonString, apiResp.Com, order)
     }
-
-    if err != nil {
-        return "", err
-    }
-
-    _, err = stmt.Exec(order, unixTime, jsonString, apiResp.Com)
 
     if err != nil {
         return "", err
@@ -121,7 +116,7 @@ func (db *ExpressDB) Query(order, com string) (string, error) {
         row = db.db.QueryRow("SELECT express_record, update_time FROM express WHERE express_id=?", order)
 
     } else {
-        row = db.db.QueryRow("SELECT express_record, update_time FROM express WHERE express_id=? AND express_com=?", order, com)
+        row = db.db.QueryRow("SELECT express_record, update_time FROM express WHERE express_id=?", order)
     }
 
     if err != nil {
@@ -147,16 +142,49 @@ func (db *ExpressDB) Query(order, com string) (string, error) {
 
     update := time.Unix(updateTime, 0)
 
-    if update.Sub(now) > 10*time.Minute {
+    if now.Sub(update) > 10*time.Minute {
         return "", Timeout
     }
 
     return expressRecord, nil
 }
 
+func (db *ExpressDB) ListExpress() (*sql.Rows, error) {
+    return db.db.Query("select * from express")
+}
+
+func (db *ExpressDB) Check(order string) bool {
+    db.rwlock.RLock()
+    defer db.rwlock.RUnlock()
+
+    row := db.db.QueryRow("SELECT express_id FROM express WHERE express_id=?", order)
+
+    err := row.Scan(new(string))
+
+    if err == sql.ErrNoRows {
+        return false
+    } else {
+        return true
+    }
+}
+
 func Connect(user, password string) (*ExpressDB, error) {
     db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@/express", user, password))
 
+    if err != nil {
+        return nil, err
+    }
+
+    if err = db.Ping(); err != nil {
+        log.Fatal(err)
+    }
+
+    updatePrepared, err = db.Prepare("update express set update_time=?, express_record=?, express_com=? where express_id=?")
+    if err != nil {
+        return nil, err
+    }
+
+    insertPrepared, err = db.Prepare("insert into express (update_time, express_record, express_com, express_id) values (?, ?, ?, ?)")
     if err != nil {
         return nil, err
     }

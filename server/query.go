@@ -5,7 +5,6 @@ import (
     "io"
     "github.com/Sherlock-Holo/we-express/config"
     "log"
-    "fmt"
     "github.com/Sherlock-Holo/we-express/db"
     "database/sql"
 )
@@ -20,6 +19,7 @@ func query(w http.ResponseWriter, r *http.Request) {
 
     order := query.Get("order")
     com := query.Get("com")
+    force := query.Get("force")
 
     if order == "" {
         w.WriteHeader(http.StatusBadRequest)
@@ -28,7 +28,16 @@ func query(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    jsonString, err := expressDB.Query(order, com)
+    var (
+        jsonString string
+        err        error
+    )
+
+    if force != "" {
+        jsonString, err = expressDB.Update(order, com, conf.ID, expressDB.Check(order))
+    } else {
+        jsonString, err = expressDB.Query(order, com)
+    }
 
     switch {
     case err == db.Timeout:
@@ -58,27 +67,4 @@ func query(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-type", "application/json")
     io.WriteString(w, jsonString)
 
-}
-
-func Start(configFile, addr string, port uint) {
-    var err error
-    conf, err = config.Parse(configFile)
-
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    expressDB, err = db.Connect(conf.DbUser, conf.DbPassword)
-
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    http.HandleFunc("/express", query)
-
-    address := fmt.Sprintf("%s:%d", addr, port)
-
-    log.Printf("listen on %s\n", address)
-
-    log.Fatal(http.ListenAndServe(address, nil))
 }
